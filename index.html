@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Utilisation de Tailwind CSS pour le style (Style similaire à Notion) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Personnalisation de la barre de défilement pour qu'elle soit discrète */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        body {
+            /* Couleur de fond similaire à Notion */
+            background-color: #ffffff; 
+            color: #37352f;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-5xl mx-auto">
+
+    <!-- En-tête / Header -->
+    <header class="mb-8 sticky top-0 bg-white/90 backdrop-blur-sm pt-4 pb-4 border-b border-gray-100 z-10">
+        <h1 class="text-3xl font-bold mb-4 flex items-center gap-2">
+            🇫🇷 100 Verbes Français
+        </h1>
+        
+        <!-- Contrôles : Recherche et Vitesse / Controls: Search and Speed -->
+        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200">
+            
+            <!-- Barre de recherche -->
+            <div class="relative w-full sm:w-1/2">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">🔍</span>
+                <input type="text" id="searchInput" placeholder="搜尋法文或中文..." 
+                    class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all">
+            </div>
+
+            <!-- Curseur de vitesse de la voix -->
+            <div class="flex items-center gap-3 w-full sm:w-auto">
+                <label for="speedRange" class="text-sm font-medium text-gray-600 whitespace-nowrap">語速 🐢/🐇</label>
+                <input type="range" id="speedRange" min="0.5" max="1.5" step="0.1" value="0.8" 
+                    class="w-32 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                <span id="speedValue" class="text-sm font-mono bg-white px-2 py-1 rounded border border-gray-200">0.8x</span>
+            </div>
+            
+            <!-- Bouton d'arrêt de la voix -->
+            <button onclick="stopSpeaking()" class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md hover:bg-red-100 transition-colors text-sm font-medium flex items-center gap-1">
+                ⏹ 停止播放
+            </button>
+        </div>
+    </header>
+
+    <!-- Conteneur de la grille de mots / Word Grid Container -->
+    <main>
+        <div id="wordGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <!-- Les boutons de mots seront générés ici par JavaScript -->
+        </div>
+        
+        <!-- Message si aucun mot n'est trouvé -->
+        <div id="noResults" class="hidden text-center py-10 text-gray-500">
+            找不到對應的單字。
+        </div>
+    </main>
+
+    <script>
+        // 法文單字與中文翻譯對照表
+        const verbs = [
+            { fr: "Se laver", zh: "洗澡" },
+            { fr: "S'habiller", zh: "穿衣服" },
+            { fr: "Se réveiller", zh: "醒來" },
+            { fr: "Se coucher", zh: "上床睡覺" },
+            { fr: "Se souvenir", zh: "記得" },
+            { fr: "Manger", zh: "吃" },
+            { fr: "Travailler", zh: "工作" },
+            { fr: "Étudier", zh: "學習" },
+            { fr: "Acheter", zh: "買" },
+            { fr: "Payer", zh: "付款" },
+            { fr: "Cuisiner", zh: "煮飯" },
+            { fr: "Nettoyer", zh: "打掃" },
+            { fr: "Habiter", zh: "居住" },
+            { fr: "Utiliser", zh: "使用" },
+            { fr: "Parler", zh: "說話" },
+            { fr: "Écouter", zh: "聽" },
+            { fr: "Demander", zh: "詢問 / 要求" },
+            { fr: "Appeler", zh: "呼叫 / 打電話" },
+            { fr: "Aider", zh: "幫助" },
+            { fr: "Donner", zh: "給" },
+            { fr: "Partager", zh: "分享" },
+            { fr: "Rencontrer", zh: "遇見" },
+            { fr: "Inviter", zh: "邀請" },
+            { fr: "Discuter", zh: "討論" },
+            { fr: "Expliquer", zh: "解釋" },
+            { fr: "Regarder", zh: "看" },
+            { fr: "Penser", zh: "思考 / 認為" },
+            { fr: "Oublier", zh: "忘記" },
+            { fr: "Espérer", zh: "希望" },
+            { fr: "Décider", zh: "決定" },
+            { fr: "Aimer", zh: "喜歡 / 愛" },
+            { fr: "Adorer", zh: "熱愛" },
+            { fr: "Détester", zh: "討厭" },
+            { fr: "Marcher", zh: "走路" },
+            { fr: "Sauter", zh: "跳躍" },
+            { fr: "Nager", zh: "游泳" },
+            { fr: "Arriver", zh: "到達" },
+            { fr: "Rester", zh: "停留" },
+            { fr: "Monter", zh: "上升 / 爬" },
+            { fr: "Entrer", zh: "進入" },
+            { fr: "Passer", zh: "經過 / 度過" },
+            { fr: "Tomber", zh: "跌倒 / 掉落" },
+            { fr: "Voyager", zh: "旅行" },
+            { fr: "Commencer", zh: "開始" },
+            { fr: "Arrêter", zh: "停止" },
+            { fr: "Continuer", zh: "繼續" },
+            { fr: "Sembler", zh: "似乎" },
+            { fr: "Trouver", zh: "找到 / 覺得" },
+            { fr: "Chercher", zh: "尋找" },
+            { fr: "Gagner", zh: "贏得 / 賺" },
+            { fr: "Porter", zh: "穿著 / 攜帶" },
+            { fr: "Montrer", zh: "展示" },
+            { fr: "Fermer", zh: "關閉" },
+            { fr: "Changer", zh: "改變" },
+            { fr: "Préparer", zh: "準備" },
+            { fr: "Proposer", zh: "提議" },
+            { fr: "Rappeler", zh: "提醒 / 回電" },
+            { fr: "Essayer", zh: "嘗試" },
+            { fr: "Chanter", zh: "唱歌" },
+            { fr: "Danser", zh: "跳舞" },
+            { fr: "Jouer", zh: "玩耍" },
+            { fr: "Choisir", zh: "選擇" },
+            { fr: "Finir", zh: "完成 / 結束" },
+            { fr: "Faire", zh: "做" },
+            { fr: "Aller", zh: "去" },
+            { fr: "Venir", zh: "來" },
+            { fr: "Dire", zh: "說" },
+            { fr: "Pouvoir", zh: "能夠" },
+            { fr: "Vouloir", zh: "想要" },
+            { fr: "Devoir", zh: "必須" },
+            { fr: "Savoir", zh: "知道 / 懂得" },
+            { fr: "Boire", zh: "喝" },
+            { fr: "Dormir", zh: "睡覺" },
+            { fr: "Répondre", zh: "回答" },
+            { fr: "Écrire", zh: "寫作" },
+            { fr: "Lire", zh: "閱讀" },
+            { fr: "Prendre", zh: "拿 / 搭乘" },
+            { fr: "Voir", zh: "看見" },
+            { fr: "Entendre", zh: "聽見" },
+            { fr: "Sentir", zh: "感覺 / 聞" },
+            { fr: "Croire", zh: "相信" },
+            { fr: "Comprendre", zh: "理解" },
+            { fr: "Apprendre", zh: "學習" },
+            { fr: "Courir", zh: "跑步" },
+            { fr: "Partir", zh: "離開" },
+            { fr: "Descendre", zh: "下降 / 下車" },
+            { fr: "Sortir", zh: "出去" },
+            { fr: "Devenir", zh: "變成" },
+            { fr: "Perdre", zh: "失去 / 輸" },
+            { fr: "Attendre", zh: "等待" },
+            { fr: "Ouvrir", zh: "打開" },
+            { fr: "Rendre", zh: "歸還 / 使得" },
+            { fr: "Tenir", zh: "握住 / 保持" },
+            { fr: "Vivre", zh: "生活" },
+            { fr: "Mourir", zh: "死亡" },
+            { fr: "Naître", zh: "出生" },
+            { fr: "Rire", zh: "笑" },
+            { fr: "Être", zh: "是 / 存在" },
+            { fr: "Avoir", zh: "有" }
+        ];
+
+        const wordGrid = document.getElementById('wordGrid');
+        const searchInput = document.getElementById('searchInput');
+        const speedRange = document.getElementById('speedRange');
+        const speedValue = document.getElementById('speedValue');
+        const noResults = document.getElementById('noResults');
+
+        // Initialisation de la synthèse vocale / Init Speech Synthesis
+        const synth = window.speechSynthesis;
+
+        // Fonction pour afficher les verbes (顯示單字按鈕)
+        function renderVerbs(filterText = "") {
+            wordGrid.innerHTML = ''; // 清除目前網格
+            
+            // 讓搜尋功能同時支援法文與中文比對
+            const filteredVerbs = verbs.filter(verb => 
+                verb.fr.toLowerCase().includes(filterText.toLowerCase()) ||
+                verb.zh.includes(filterText)
+            );
+
+            if (filteredVerbs.length === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            filteredVerbs.forEach(verb => {
+                const button = document.createElement('button');
+                button.className = "flex items-center justify-between p-3 text-left bg-white border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 shadow-sm hover:shadow active:scale-95 group";
+                
+                // 結構更新：左側顯示法文與中文，右側顯示喇叭圖示
+                button.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-bold text-gray-800 group-hover:text-blue-700 text-lg">${verb.fr}</span>
+                        <span class="text-sm text-gray-500 group-hover:text-blue-500 mt-1">${verb.zh}</span>
+                    </div>
+                    <span class="text-gray-300 group-hover:text-blue-500 text-xl ml-2">🔊</span>
+                `;
+                
+                // 點擊後朗讀法文部分
+                button.onclick = () => speakFrench(verb.fr);
+                wordGrid.appendChild(button);
+            });
+        }
+
+        // Fonction pour lire le texte en français (朗讀法文)
+        function speakFrench(text) {
+            // 如果點擊了新的單字，先停止當前的朗讀
+            synth.cancel(); 
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // 強制設定為法語 (法國)
+            utterance.lang = 'fr-FR'; 
+            
+            // 套用使用者設定的語速
+            utterance.rate = parseFloat(speedRange.value); 
+            
+            // 播放聲音
+            synth.speak(utterance);
+        }
+
+        // Fonction pour arrêter la lecture (停止朗讀)
+        function stopSpeaking() {
+            synth.cancel();
+        }
+
+        // Écouteurs d'événements / Event Listeners
+        
+        // 實時搜尋監聽器
+        searchInput.addEventListener('input', (e) => {
+            renderVerbs(e.target.value);
+        });
+
+        // 語速拉桿數值更新
+        speedRange.addEventListener('input', (e) => {
+            speedValue.textContent = Number(e.target.value).toFixed(1) + 'x';
+        });
+
+        // 網頁載入時初始化渲染單字
+        renderVerbs();
+
+    </script>
+</body>
+</html>
